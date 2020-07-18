@@ -1,0 +1,49 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: certificate-renewal
+spec:
+  schedule: ${{ SCHEDULE }}
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    metadata:
+      name: certificate-renewal
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          name: certificate-renewal
+          labels:
+            name: certificate-renewal
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: certificate-renewal
+          containers:
+            - name: certificate-renewal
+              image: registry.gitlab.com/bit-memo/deprecated/bitmemo-old-monorepo/cert-renewal:latest
+              imagePullPolicy: Always
+              env:
+                - name: WEBSITE
+                  value: "${{ DOMAIN }}"
+                - name: "SERVER"
+                  value: "${{ ENV }}" # (production for real certificate, staging for test certificate)
+                - name: SUBDOMAINS
+                  value: "${{ SUBDOMAINS }}"
+              # command: ["bash", "-c", "--"]
+              # args: ["while true; do sleep 30; done;"]
+              ports:
+                - containerPort: 80 # Expose port 80 to container
+          imagePullSecrets:
+            - name: registry-creds
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: certificate-renewal
+spec:
+  selector:
+    name: certificate-renewal
+  ports:
+    - port: 80
+      targetPort: 80

@@ -1,0 +1,14 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cert-renewal-ir
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`${{ DOMAIN }}`) && PathPrefix(`/.well-known/acme-challenge/`)
+      services:
+        - name: certificate-renewal
+          port: 80
+  # tls: {} # Not required, this is certificate renewal
